@@ -1,30 +1,27 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <iostream>
 #include <unistd.h>
 #include <sys/socket.h>
 #include <sys/types.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
 #include <sqlite3.h>
-
 #define PORT 4444
+char buffer[4096] = "";
 
+int callback(void *NotUsed, int argc, char **argv, char **azColName);
 int main()
 {
+	bool change_status = false;
 	sqlite3 *db;
 	char *zErrMsg = 0;
 	int rc;
 	int sockfd, ret;
 	struct sockaddr_in serverAddr;
-
 	int newSocket;
 	struct sockaddr_in newAddr;
-
 	socklen_t addr_size;
-
-	char buffer[1024] = "";
 	pid_t childpid;
 
 	sockfd = socket(AF_INET, SOCK_STREAM, 0);
@@ -56,7 +53,16 @@ int main()
 	{
 		printf("[-]Error in binding.\n");
 	}
+	rc = sqlite3_open("weather-info.db", &db);
+	if (rc != SQLITE_OK)
+	{
 
+		fprintf(stderr, "Cannot open database: %s\n",
+				sqlite3_errmsg(db));
+		sqlite3_close(db);
+
+		return 1;
+	}
 	while (1)
 	{
 		newSocket = accept(sockfd, (struct sockaddr *)&newAddr, &addr_size);
@@ -80,21 +86,60 @@ int main()
 				}
 				else
 				{
-					if (strcmp(buffer, "ls regions") == 0)
+					if (strcmp(buffer, "lsregions") == 0)
 					{
 						printf("Listing regions...");
-						std::string sql = "SELECT * FROM regions;";
-						rc = sqlite3_exec(db,sql.c_str(),NULL,0,&zErrMsg);
+						char *sql = "SELECT * FROM regions;";
+						rc = sqlite3_exec(db, sql, callback, buffer, &zErrMsg);
+						if (rc != SQLITE_OK)
+						{
+							fprintf(stderr, "Failed to select data\n");
+							fprintf(stderr, "SQL error: %s\n", zErrMsg);
+							sqlite3_free(zErrMsg);
+							sqlite3_close(db);
+						}
+						send(newSocket, buffer, strlen(buffer), 0);
+						bzero(buffer, sizeof(buffer));
+						sqlite3_close(db);
 					}
-					printf("Client: %s\n", buffer);
-					send(newSocket, buffer, strlen(buffer), 0);
-					bzero(buffer, sizeof(buffer));
+					else
+					{
+						if (strcmp(buffer, "change") == 0)
+						{
+							change_status = true;
+						}
+						else
+						{
+							printf("Client: %s\n", buffer);
+							send(newSocket, buffer, strlen(buffer), 0);
+							bzero(buffer, sizeof(buffer));
+						}
+					}
 				}
 			}
 		}
 	}
 
 	close(newSocket);
+
+	return 0;
+}
+
+int callback(void *NotUsed, int argc, char **argv, char **azColName)
+{
+
+	NotUsed = 0;
+
+	for (int i = 0; i < argc; i++)
+	{
+		strcat(buffer, azColName[i]);
+		strcat(buffer, " = ");
+		strcat(buffer, argv[i] ? argv[i] : "NULL");
+		strcat(buffer, "\n");
+		printf("%s = %s\n", azColName[i], argv[i] ? argv[i] : "NULL");
+	}
+
+	printf("\n");
 
 	return 0;
 }
