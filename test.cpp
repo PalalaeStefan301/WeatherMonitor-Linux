@@ -1,25 +1,28 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
+
+#define SWITCH(S) char *_S = S; if (0)
+#define CASE(S) } else if (strcmp(_S, S) == 0) {switch(1) { case 1
+#define BREAK }
+#define DEFAULT } else {switch(1) { case 1
 
 int main()
 {
-   int num;
-   FILE *fptr;
+    char buf[256];
 
-   // use appropriate location if you are using MacOS or Linux
-   fptr = fopen("program.txt","a");
+    printf("\nString - Enter your string: ");
+    scanf ("%s", buf);
 
-   if(fptr == NULL)
-   {
-      printf("Error!");
-      exit(1);             
-   }
-
-   printf("Enter num: ");
-   scanf("%d",&num);
-
-   fprintf(fptr,"%d",num);
-   fclose(fptr);
-
-   return 0;
+    SWITCH (buf) {
+        CASE ("abcdef"):
+            printf ("B1!\n");
+            BREAK;
+        CASE ("ghijkl"):
+            printf ("C1!\n");
+            BREAK;
+        DEFAULT:
+            printf ("D1!\n");
+            BREAK;
+    }
 }

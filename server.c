@@ -5,15 +5,16 @@
 #include <sys/socket.h>
 #include <sys/types.h>
 #include <netinet/in.h>
+#include <fcntl.h>
 #include <arpa/inet.h>
 #include <sqlite3.h>
-#define PORT 4444
 char buffer[4096] = "";
 
 int callback(void *NotUsed, int argc, char **argv, char **azColName);
-int main()
+int main(int argc, char **argv)
 {
-	bool change_status = false;
+	int fd = open("program.txt", O_CREAT | O_WRONLY | O_TRUNC);
+	int change_status = 0;
 	sqlite3 *db;
 	char *zErrMsg = 0;
 	int rc;
@@ -34,16 +35,26 @@ int main()
 
 	memset(&serverAddr, '\0', sizeof(serverAddr));
 	serverAddr.sin_family = AF_INET;
-	serverAddr.sin_port = htons(PORT);
+	serverAddr.sin_port = htons(atoi(argv[1]));
 	serverAddr.sin_addr.s_addr = inet_addr("127.0.0.1");
-
+	int opt = 1;
+	if (setsockopt(sockfd, SOL_SOCKET, SO_REUSEADDR, (char *)&opt, sizeof(opt)) < 0)
+	{
+		perror("setsockopt");
+		exit(EXIT_FAILURE);
+	}
+	if (setsockopt(sockfd, SOL_SOCKET, SO_REUSEPORT, (char *)&opt, sizeof(opt)) < 0)
+	{
+		perror("setsockopt");
+		exit(EXIT_FAILURE);
+	}
 	ret = bind(sockfd, (struct sockaddr *)&serverAddr, sizeof(serverAddr));
 	if (ret < 0)
 	{
 		printf("[-]Error in binding.\n");
 		exit(1);
 	}
-	printf("[+]Bind to port %d\n", 4444);
+	printf("[+]Bind to port %d\n", atoi(argv[1]));
 
 	if (listen(sockfd, 10) == 0)
 	{
@@ -98,30 +109,51 @@ int main()
 							sqlite3_free(zErrMsg);
 							sqlite3_close(db);
 						}
-						send(newSocket, buffer, strlen(buffer), 0);
-						bzero(buffer, sizeof(buffer));
-						sqlite3_close(db);
 					}
 					else
 					{
 						if (strcmp(buffer, "change") == 0)
 						{
-							change_status = true;
+							change_status = 1;
+							strcpy(buffer, "Choose what");
 						}
 						else
 						{
-							printf("Client: %s\n", buffer);
-							send(newSocket, buffer, strlen(buffer), 0);
-							bzero(buffer, sizeof(buffer));
+
+							if (strcmp(buffer, "regions,cities") == 0 )
+							{
+								printf("Listing regions...");
+								char *sql = "SELECT * FROM ";
+								strcat(sql, buffer);
+								strcat(sql, " ;");
+								rc = sqlite3_exec(db, sql, callback, buffer, &zErrMsg);
+								if (rc != SQLITE_OK)
+								{
+									fprintf(stderr, "Failed to select data\n");
+									fprintf(stderr, "SQL error: %s\n", zErrMsg);
+									sqlite3_free(zErrMsg);
+									sqlite3_close(db);
+								}
+								write(fd, buffer, sizeof(buffer));
+							}
+							
 						}
 					}
+					printf("Client: %s\n", buffer);
+					send(newSocket, buffer, strlen(buffer), 0);
+					bzero(buffer, sizeof(buffer));
 				}
 			}
+		}
+		else
+		{
+			continue;
 		}
 	}
 
 	close(newSocket);
-
+	close(fd);
+	sqlite3_close(db);
 	return 0;
 }
 
