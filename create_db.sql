@@ -1,3 +1,5 @@
+DROP TABLE regions;
+DROP TABLE cities;
 
 CREATE TABLE IF NOT EXISTS regions (
 	region_id INTEGER PRIMARY KEY,
@@ -19,11 +21,7 @@ CREATE TABLE IF NOT EXISTS cities (
     uv_index INTEGER NOT NULL,
     sunrise TEXT NOT NULL,
     sunset TEXT NOT NULL,
-    wind INTEGER NOT NULL,
-    FOREIGN KEY(region_id)
-        REFERENCES cities(region_id)
-            ON DELETE CASCADE
-            ON UPDATE NO ACTION
+    wind INTEGER NOT NULL
 );
 
 DELETE FROM regions;

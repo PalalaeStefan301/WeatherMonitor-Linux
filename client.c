@@ -12,7 +12,7 @@ int main(int argc, char **argv){
 
 	int clientSocket, ret;
 	struct sockaddr_in serverAddr;
-	char buffer[1024];
+	char buffer[4096];
 
 	clientSocket = socket(AF_INET, SOCK_STREAM, 0);
 	if(clientSocket < 0){
@@ -34,7 +34,7 @@ int main(int argc, char **argv){
 	printf("[+]Connected to Server.\n");
 
 	while(1){
-		printf("Client: \t");
+		printf("Client> ");
 		scanf("%s", &buffer[0]);
 		send(clientSocket, buffer, strlen(buffer), 0);
 
@@ -47,7 +47,7 @@ int main(int argc, char **argv){
 		if(recv(clientSocket, buffer, 1024, 0) < 0){
 			printf("[-]Error in receiving data.\n");
 		}else{
-			printf("Server: \t%s\n", buffer);
+			printf("Server> %s\n", buffer);
 		}
 	}
 
