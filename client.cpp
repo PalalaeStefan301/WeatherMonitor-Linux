@@ -36,7 +36,7 @@ int main(int argc, char **argv){
 	while(1){
 		printf("Client> ");
 		scanf("%s", &buffer[0]);
-		send(clientSocket, buffer, strlen(buffer), 0);
+		send(clientSocket, buffer, 4096, 0);
 
 		if(strcmp(buffer, ":exit") == 0){
 			close(clientSocket);
@@ -44,7 +44,7 @@ int main(int argc, char **argv){
 			exit(1);
 		}
 
-		if(recv(clientSocket, buffer, 1024, 0) < 0){
+		if(recv(clientSocket, buffer, 4096, 0) < 0){
 			printf("[-]Error in receiving data.\n");
 		}else{
 			printf("Server> %s\n", buffer);

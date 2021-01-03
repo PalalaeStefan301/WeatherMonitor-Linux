@@ -31,18 +31,18 @@
         case 1
 
 #define SWITCH1(S) \
-    int _S = S; \
+    int _S = S;    \
     if (0)
-#define CASE1(S)                  \
-    }                            \
+#define CASE1(S)      \
+    }                 \
     else if (_S == S) \
-    {                            \
-        switch (1)               \
-        {                        \
+    {                 \
+        switch (1)    \
+        {             \
         case 1
 #define BREAK1 \
     }
-#define DEFAULT1    \
+#define DEFAULT1   \
     }              \
     else           \
     {              \
@@ -50,7 +50,7 @@
         {          \
         case 1
 
-char buffer[1024] = "";
+char buffer[4096] = "";
 std::string output;
 int callback(void *NotUsed, int argc, char **argv, char **azColName);
 
@@ -133,80 +133,85 @@ int main(int argc, char **argv)
 
             while (1)
             {
-                recv(newSocket, buffer, 1024, 0);
+                recv(newSocket, buffer, 4096, 0);
 
                 fd = open("program.txt", O_CREAT | O_WRONLY | O_TRUNC);
                 if (status != 0)
                 {
                     SWITCH1(status)
                     {
-                    CASE1(1):
-                        sql.erase();
+                        CASE1(1) : sql.erase();
                         sql = "INSERT INTO cities(city_name,region_id,temperature,humidity,uv_index,sunrise,sunset,wind) VALUES (";
                         sql.append(buffer);
                         sql.append(");");
                         write(fd, sql.c_str(), sql.length());
                         rc = sqlite3_exec(db, sql.c_str(), 0, 0, &zErrMsg);
+                        strcpy(buffer, "City inserted, well done");
                         if (rc != SQLITE_OK)
                         {
                             fprintf(stderr, "Failed to select data\n");
                             fprintf(stderr, "SQL error: %s\n", zErrMsg);
+                            strcpy(buffer, "Bad input, try again");
                             sqlite3_free(zErrMsg);
                             sqlite3_close(db);
                         }
                         status = 0;
                         BREAK1;
-                    CASE1(2):
-                        sql.erase();
+                        CASE1(2) : sql.erase();
                         sql = "INSERT INTO regions(region_name,temperature,humidity,uv_index,sunrise,sunset,wind) VALUES (";
                         sql.append(buffer);
                         sql.append(");");
                         write(fd, sql.c_str(), sql.length());
                         rc = sqlite3_exec(db, sql.c_str(), 0, 0, &zErrMsg);
+                        strcpy(buffer, "Region inserted, well done");
                         if (rc != SQLITE_OK)
                         {
                             fprintf(stderr, "Failed to select data\n");
                             fprintf(stderr, "SQL error: %s\n", zErrMsg);
+                            strcpy(buffer, "Bad input, try again");
                             sqlite3_free(zErrMsg);
                             sqlite3_close(db);
-                            printf("%s \n %s \n",buffer,sql.c_str());
+                            printf("%s \n %s \n", buffer, sql.c_str());
                         }
                         status = 0;
                         BREAK1;
-                    CASE1(3):
-                        sql.erase();
+                        CASE1(3) : sql.erase();
                         sql = "DELETE FROM regions WHERE region_name='";
                         sql.append(buffer);
                         sql.append("';");
                         write(fd, sql.c_str(), sql.length());
                         rc = sqlite3_exec(db, sql.c_str(), 0, 0, &zErrMsg);
+                        strcpy(buffer, "Region deleted, well done");
                         if (rc != SQLITE_OK)
                         {
                             fprintf(stderr, "Failed to select data\n");
                             fprintf(stderr, "SQL error: %s\n", zErrMsg);
+                            strcpy(buffer, "Bad input, try again");
                             sqlite3_free(zErrMsg);
                             sqlite3_close(db);
                         }
                         status = 0;
                         BREAK1;
-                    CASE1(4):
-                        sql.erase();
+                        CASE1(4) : sql.erase();
                         sql = "DELETE FROM cities WHERE city_name='";
                         sql.append(buffer);
                         sql.append("\';");
                         //write(fd, sql.c_str(), sql.length());
-                        printf("%s \n",sql.c_str());
+                        printf("%s \n", sql.c_str());
                         rc = sqlite3_exec(db, sql.c_str(), 0, 0, &zErrMsg);
+                        strcpy(buffer, "City deleted, well done");
                         if (rc != SQLITE_OK)
                         {
                             fprintf(stderr, "Failed to select data\n");
                             fprintf(stderr, "SQL error: %s\n", zErrMsg);
+                            strcpy(buffer, "Bad input, try again");
                             sqlite3_free(zErrMsg);
                             sqlite3_close(db);
                         }
                         status = 0;
                         BREAK1;
                     DEFAULT1:
+                        printf("Message received: ");
                         status = 0;
                         BREAK1;
                     }
@@ -219,8 +224,7 @@ int main(int argc, char **argv)
                         break;
                         BREAK;
 
-                        CASE("lsregions") : memset(buffer, 0, 1024);
-                        sql = "SELECT region_name FROM regions;";
+                        CASE("lsregions") : sql = "SELECT region_name FROM regions;";
                         rc = sqlite3_exec(db, sql.c_str(), callback, buffer, &zErrMsg);
                         if (rc != SQLITE_OK)
                         {
@@ -232,8 +236,7 @@ int main(int argc, char **argv)
                         sql.erase();
                         BREAK;
 
-                        CASE("lscities") : memset(buffer, 0, 1024);
-                        sql = "SELECT city_name FROM cities;";
+                        CASE("lscities") : sql = "SELECT city_name FROM cities;";
                         rc = sqlite3_exec(db, sql.c_str(), callback, buffer, &zErrMsg);
                         if (rc != SQLITE_OK)
                         {
@@ -255,7 +258,7 @@ int main(int argc, char **argv)
                             sqlite3_close(db);
                         }
                         write(fd, buffer, 100);
-                        bzero(buffer, 1024);
+                        bzero(buffer, strlen(buffer));
                         strcpy(buffer, "Change it in file");
                         sql.erase();
                         BREAK;
@@ -270,43 +273,43 @@ int main(int argc, char **argv)
                             sqlite3_close(db);
                         }
                         write(fd, buffer, sizeof(buffer));
-                        bzero(buffer, 1024);
+                        bzero(buffer, strlen(buffer));
                         strcpy(buffer, "Change it in file");
                         sql.erase();
                         BREAK;
 
                         CASE("insert_region") : status = 2;
-                        bzero(buffer, 1024);
+                        bzero(buffer, strlen(buffer));
                         strcpy(buffer, "Order is: region_name,temperature,humidity,uv_index,sunrise,sunset,wind");
                         BREAK;
 
                         CASE("insert_city") : status = 1;
-                        bzero(buffer, 1024);
+                        bzero(buffer, strlen(buffer));
                         strcpy(buffer, "Order is: city_name,region_id,temperature,humidity,uv_index,sunrise,sunset,wind");
                         BREAK;
 
                         CASE("delete_region") : status = 3;
 
-                        bzero(buffer, 1024);
-                        memset(buffer, 0, 1024);;
+                        bzero(buffer, strlen(buffer));
+                        memset(buffer, 0, strlen(buffer));
+                        ;
                         strcpy(buffer, "Which region");
                         BREAK;
 
                         CASE("delete_city") : status = 4;
-                        bzero(buffer, 1024);
+                        bzero(buffer, strlen(buffer));
                         strcpy(buffer, "Which city");
                         BREAK;
                     DEFAULT:
                         printf("Message received: ");
                         BREAK;
                     }
-
-                    close(fd);
-                    printf("%s\n", buffer);
-                    send(newSocket, buffer, strlen(buffer), 0);
-                    bzero(buffer, strlen(buffer));
                 }
-                printf("penis");
+
+                close(fd);
+                printf("%s\n", buffer);
+                send(newSocket, buffer, strlen(buffer), 0);
+                bzero(buffer, strlen(buffer));
             }
         }
         else
