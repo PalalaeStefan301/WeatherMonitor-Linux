@@ -438,7 +438,5 @@ int callback(void *NotUsed, int argc, char **argv, char **azColName)
         strcat(buffer, ",");
     }
 
-    printf("\n");
-
     return 0;
 }
