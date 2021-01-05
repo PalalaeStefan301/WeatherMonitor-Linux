@@ -340,7 +340,7 @@ int main(int argc, char **argv)
                         BREAK1;
 
                     DEFAULT1:
-                        printf("Message received: ");
+                        printf("Message received: %s \n",buffer);
                         BREAK1;
                     }
                 }
@@ -409,13 +409,12 @@ int main(int argc, char **argv)
                         strcpy(buffer, "Which region");
                         BREAK;
                     DEFAULT:
-                        printf("Message received: %s",buffer);
+                        printf("Message received: %s \n",buffer);
                         BREAK;
                     }
                 }
-                //printf("%s\n", buffer);
                 send(newSocket, buffer, strlen(buffer), 0);
-                bzero(buffer, strlen(buffer));
+                bzero(buffer, 4096);
                 fflush(stdout);
             }
         }
