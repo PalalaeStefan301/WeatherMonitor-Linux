@@ -21,7 +21,8 @@ CREATE TABLE IF NOT EXISTS cities (
     uv_index INTEGER NOT NULL,
     sunrise TEXT NOT NULL,
     sunset TEXT NOT NULL,
-    wind INTEGER NOT NULL
+    wind INTEGER NOT NULL,
+    FOREIGN KEY(region_id) REFERENCES regions(region_id)
 );
 
 DELETE FROM regions;
