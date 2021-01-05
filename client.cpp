@@ -38,7 +38,7 @@ int main(int argc, char **argv){
 		scanf("%s", &buffer[0]);
 		send(clientSocket, buffer, 4096, 0);
 
-		if(strcmp(buffer, ":exit") == 0){
+		if(strcmp(buffer, ".exit") == 0){
 			close(clientSocket);
 			printf("[-]Disconnected from server.\n");
 			exit(1);

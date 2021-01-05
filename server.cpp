@@ -57,7 +57,6 @@ int callback(void *NotUsed, int argc, char **argv, char **azColName);
 int main(int argc, char **argv)
 {
     int fd;
-    int change_status = 0;
     sqlite3 *db;
     char *zErrMsg = 0;
     int rc;
@@ -126,25 +125,119 @@ int main(int argc, char **argv)
             exit(1);
         }
         printf("Connection accepted from %s:%d\n", inet_ntoa(newAddr.sin_addr), ntohs(newAddr.sin_port));
-        int status = 0;
+
         if ((childpid = fork()) == 0)
         {
             close(sockfd);
-
+            int status = 0, status_s = 0;
+            std::string aux;
             while (1)
             {
                 recv(newSocket, buffer, 4096, 0);
-
-                fd = open("program.txt", O_CREAT | O_WRONLY | O_TRUNC);
                 if (status != 0)
                 {
                     SWITCH1(status)
                     {
+                        CASE1(7) : sql.erase();
+                        sql.append("UPDATE cities SET (city_name,region_id,temperature,humidity,uv_index,sunrise,sunset,wind)=(");
+                        char *pch;
+                        int it = 0;
+                        pch = strtok(buffer, ", ");
+                        while (pch != NULL)
+                        {
+                            if (it == 0)
+                            {
+                                sql.append("'");
+                                sql.append(pch);
+                                sql.append("',");
+                            }
+                            else
+                            {
+                                if (it == 5 || it == 6)
+                                {
+                                    sql.append("'");
+                                    sql.append(pch);
+                                    sql.append("',");
+                                }
+                                else
+                                {
+                                    if (it == 7)
+                                    {
+                                        sql.append(pch);
+                                        sql.append(" ) WHERE city_name='");
+                                        sql.append(aux);
+                                        aux.erase();
+                                        sql.append("';");
+                                    }
+                                    else
+                                    {
+                                        sql.append(pch);
+                                        sql.append(",");
+                                    }
+                                }
+                            }
+                            pch = strtok(NULL, ", ");
+                            it++;
+                        }
+                        printf("%s \n", sql.c_str());
+                        sql.append(");");
+                        rc = sqlite3_exec(db, sql.c_str(), 0, 0, &zErrMsg);
+                        strcpy(buffer, "City updated, well done");
+                        status = 0;
+                        BREAK1;
+
+                        CASE1(8) : sql.erase();
+                        sql.append("UPDATE regions SET (region_name,temperature,humidity,uv_index,sunrise,sunset,wind)=(");
+                        char *pch;
+                        int it = 0;
+                        pch = strtok(buffer, ", ");
+                        while (pch != NULL)
+                        {
+                            if (it == 0)
+                            {
+                                sql.append("'");
+                                sql.append(pch);
+                                sql.append("',");
+                            }
+                            else
+                            {
+                                if (it == 4 || it == 5)
+                                {
+                                    sql.append("'");
+                                    sql.append(pch);
+                                    sql.append("',");
+                                }
+                                else
+                                {
+                                    if (it == 6)
+                                    {
+                                        sql.append(pch);
+                                        sql.append(" ) WHERE region_name='");
+                                        sql.append(aux);
+                                        aux.erase();
+                                        sql.append("';");
+                                    }
+                                    else
+                                    {
+                                        sql.append(pch);
+                                        sql.append(",");
+                                    }
+                                }
+                            }
+                            pch = strtok(NULL, ", ");
+                            it++;
+                        }
+                        printf("%s \n", sql.c_str());
+                        sql.append(");");
+                        rc = sqlite3_exec(db, sql.c_str(), 0, 0, &zErrMsg);
+                        strcpy(buffer, "City updated, well done");
+                        status = 0;
+                        BREAK1;
+
                         CASE1(1) : sql.erase();
                         sql = "INSERT INTO cities(city_name,region_id,temperature,humidity,uv_index,sunrise,sunset,wind) VALUES (";
                         sql.append(buffer);
                         sql.append(");");
-                        write(fd, sql.c_str(), sql.length());
                         rc = sqlite3_exec(db, sql.c_str(), 0, 0, &zErrMsg);
                         strcpy(buffer, "City inserted, well done");
                         if (rc != SQLITE_OK)
@@ -161,7 +254,6 @@ int main(int argc, char **argv)
                         sql = "INSERT INTO regions(region_name,temperature,humidity,uv_index,sunrise,sunset,wind) VALUES (";
                         sql.append(buffer);
                         sql.append(");");
-                        write(fd, sql.c_str(), sql.length());
                         rc = sqlite3_exec(db, sql.c_str(), 0, 0, &zErrMsg);
                         strcpy(buffer, "Region inserted, well done");
                         if (rc != SQLITE_OK)
@@ -179,7 +271,6 @@ int main(int argc, char **argv)
                         sql = "DELETE FROM regions WHERE region_name='";
                         sql.append(buffer);
                         sql.append("';");
-                        write(fd, sql.c_str(), sql.length());
                         rc = sqlite3_exec(db, sql.c_str(), 0, 0, &zErrMsg);
                         strcpy(buffer, "Region deleted, well done");
                         if (rc != SQLITE_OK)
@@ -196,8 +287,6 @@ int main(int argc, char **argv)
                         sql = "DELETE FROM cities WHERE city_name='";
                         sql.append(buffer);
                         sql.append("\';");
-                        //write(fd, sql.c_str(), sql.length());
-                        printf("%s \n", sql.c_str());
                         rc = sqlite3_exec(db, sql.c_str(), 0, 0, &zErrMsg);
                         strcpy(buffer, "City deleted, well done");
                         if (rc != SQLITE_OK)
@@ -210,9 +299,48 @@ int main(int argc, char **argv)
                         }
                         status = 0;
                         BREAK1;
+                        CASE1(5) : aux.erase();
+                        aux.append(buffer);
+                        sql.erase();
+                        sql = "SELECT city_name,region_id,temperature,humidity,uv_index,sunrise,sunset,wind FROM cities WHERE city_name='";
+                        sql.append(buffer);
+                        sql.append("\';");
+                        bzero(buffer, 4096);
+                        printf("%s \n", sql.c_str());
+                        rc = sqlite3_exec(db, sql.c_str(), callback, buffer, &zErrMsg);
+                        if (rc != SQLITE_OK)
+                        {
+                            fprintf(stderr, "Failed to select data\n");
+                            fprintf(stderr, "SQL error: %s\n", zErrMsg);
+                            sqlite3_free(zErrMsg);
+                            sqlite3_close(db);
+                        }
+
+                        status = 7;
+                        BREAK1;
+
+                        CASE1(6) : aux.erase();
+                        aux.append(buffer);
+                        sql.erase();
+                        sql = "SELECT region_name,temperature,humidity,uv_index,sunrise,sunset,wind FROM regions WHERE region_name='";
+                        sql.append(buffer);
+                        sql.append("\';");
+                        bzero(buffer, 4096);
+                        printf("%s \n", sql.c_str());
+                        rc = sqlite3_exec(db, sql.c_str(), callback, buffer, &zErrMsg);
+                        if (rc != SQLITE_OK)
+                        {
+                            fprintf(stderr, "Failed to select data\n");
+                            fprintf(stderr, "SQL error: %s\n", zErrMsg);
+                            sqlite3_free(zErrMsg);
+                            sqlite3_close(db);
+                        }
+
+                        status = 8;
+                        BREAK1;
+
                     DEFAULT1:
                         printf("Message received: ");
-                        status = 0;
                         BREAK1;
                     }
                 }
@@ -220,11 +348,12 @@ int main(int argc, char **argv)
                 {
                     SWITCH(buffer)
                     {
-                        CASE(":exit") : printf("Disconnected from %s:%d\n", inet_ntoa(newAddr.sin_addr), ntohs(newAddr.sin_port));
+                        CASE(".exit") : printf("Disconnected from %s:%d\n", inet_ntoa(newAddr.sin_addr), ntohs(newAddr.sin_port));
                         break;
                         BREAK;
 
-                        CASE("lsregions") : sql = "SELECT region_name FROM regions;";
+                        CASE("ls_regions") : bzero(buffer, 4096);
+                        sql = "SELECT region_name FROM regions;";
                         rc = sqlite3_exec(db, sql.c_str(), callback, buffer, &zErrMsg);
                         if (rc != SQLITE_OK)
                         {
@@ -236,7 +365,8 @@ int main(int argc, char **argv)
                         sql.erase();
                         BREAK;
 
-                        CASE("lscities") : sql = "SELECT city_name FROM cities;";
+                        CASE("ls_cities") : bzero(buffer, 4096);
+                        sql = "SELECT city_name FROM cities;";
                         rc = sqlite3_exec(db, sql.c_str(), callback, buffer, &zErrMsg);
                         if (rc != SQLITE_OK)
                         {
@@ -245,36 +375,6 @@ int main(int argc, char **argv)
                             sqlite3_free(zErrMsg);
                             sqlite3_close(db);
                         }
-                        sql.erase();
-                        BREAK;
-
-                        CASE("change_regions") : sql = "SELECT region_name,temperature,humidity,uv_index,sunrise,sunset,wind FROM regions;";
-                        rc = sqlite3_exec(db, sql.c_str(), callback, buffer, &zErrMsg);
-                        if (rc != SQLITE_OK)
-                        {
-                            fprintf(stderr, "Failed to select data\n");
-                            fprintf(stderr, "SQL error: %s\n", zErrMsg);
-                            sqlite3_free(zErrMsg);
-                            sqlite3_close(db);
-                        }
-                        write(fd, buffer, 100);
-                        bzero(buffer, strlen(buffer));
-                        strcpy(buffer, "Change it in file");
-                        sql.erase();
-                        BREAK;
-
-                        CASE("change_cities") : sql = "SELECT city_name,region_id,temperature,humidity,uv_index,sunrise,sunset,wind FROM cities;";
-                        rc = sqlite3_exec(db, sql.c_str(), callback, buffer, &zErrMsg);
-                        if (rc != SQLITE_OK)
-                        {
-                            fprintf(stderr, "Failed to select data\n");
-                            fprintf(stderr, "SQL error: %s\n", zErrMsg);
-                            sqlite3_free(zErrMsg);
-                            sqlite3_close(db);
-                        }
-                        write(fd, buffer, sizeof(buffer));
-                        bzero(buffer, strlen(buffer));
-                        strcpy(buffer, "Change it in file");
                         sql.erase();
                         BREAK;
 
@@ -289,10 +389,8 @@ int main(int argc, char **argv)
                         BREAK;
 
                         CASE("delete_region") : status = 3;
-
                         bzero(buffer, strlen(buffer));
                         memset(buffer, 0, strlen(buffer));
-                        ;
                         strcpy(buffer, "Which region");
                         BREAK;
 
@@ -300,16 +398,25 @@ int main(int argc, char **argv)
                         bzero(buffer, strlen(buffer));
                         strcpy(buffer, "Which city");
                         BREAK;
+
+                        CASE("update_city") : status = 5;
+                        bzero(buffer, strlen(buffer));
+                        strcpy(buffer, "Which city");
+                        BREAK;
+
+                        CASE("update_region") : status = 6;
+                        bzero(buffer, strlen(buffer));
+                        strcpy(buffer, "Which region");
+                        BREAK;
                     DEFAULT:
-                        printf("Message received: ");
+                        printf("Message received: %s",buffer);
                         BREAK;
                     }
                 }
-
-                close(fd);
-                printf("%s\n", buffer);
+                //printf("%s\n", buffer);
                 send(newSocket, buffer, strlen(buffer), 0);
                 bzero(buffer, strlen(buffer));
+                fflush(stdout);
             }
         }
         else
@@ -328,11 +435,8 @@ int callback(void *NotUsed, int argc, char **argv, char **azColName)
     NotUsed = 0;
     for (int i = 0; i < argc; i++)
     {
-        strcat(buffer, azColName[i]);
-        strcat(buffer, " = ");
         strcat(buffer, argv[i] ? argv[i] : "NULL");
-        strcat(buffer, "\n");
-        //printf("%s = %s\n", azColName[i], argv[i] ? argv[i] : "NULL");
+        strcat(buffer, ",");
     }
 
     printf("\n");
